@@ -99,6 +99,10 @@ There is a nice description of how to set this up [here](https://dev.to/devmount
 - On Windows, `git` will likely not find the correct `gpg` install. The easiest way to fix this is with the following command in a PowerShell: `git config --global gpg.program (get-command gpg).source`
 - Copy and paste your *public* key to the corresponding GitHub page (Personal -> Settings -> SSH and GPG Keys)
 - Enable commit signing in VSCode. Search for `gpg` in the VSCode Settings and enable code signing. 
+- You can enable caching of your gpg-key passphrase with the `gpg-agent`. 
+    - Set the timeouts for caching the `~/.gnupg/gpg-agent.conf` file with these two lines: `default-cache-ttl 34560000` and `max-cache-ttl 34560000`. See e.g. [this page](https://superuser.com/questions/624343/keep-gnupg-credentials-cached-for-entire-user-session) for more details.
+    - For Windows, create the folder with `mkdir ~\.gnupg` and then generate the config file with this one-liner: `Set-Content -Path ~\.gnupg\gpg-agent.conf -Value "default-cache-ttl 34560000$([System.Environment]::NewLine)max-cache-ttl 34560000"` (taken from the page linked above).
+    - Now start the agent with `gpg-agent`.
 
 ### Individual vs. Corporate Contributors
 
