@@ -1,6 +1,10 @@
 # Image-Render Base Functions
 
+**Check out the `stable` branch for the latest stable version**
+
 Base functionality used by all `image-render-xxx` modules.
+
+See the repository `image-render-setup` for more information and documentation on the `image-render` automation system.
 
 ## Purpose of the project
 
