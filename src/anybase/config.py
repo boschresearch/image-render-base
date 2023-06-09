@@ -44,7 +44,6 @@ TDictValue = TypeVar("TDictValue")
 
 ####################################################################################
 def ProvideReadFilepathExt(_xPathFile: Union[str, list, tuple, Path]):
-
     pathConfig = path.MakeNormPath(_xPathFile)
     pathConfigExt = path.ProvideReadFilepathExt(pathConfig, [".json", ".json5", ".ison"])
     if pathConfigExt is None:
@@ -75,7 +74,6 @@ def Load(
     bDoThrow: bool = True,
     dicCustomVars: dict = None,
 ) -> dict:
-
     try:
         pathConfig = ProvideReadFilepathExt(_xPathFile)
     except Exception as xEx:
@@ -141,7 +139,6 @@ def Save(
     *,
     sDTI: Optional[str] = None,
 ):
-
     dicData = copy.deepcopy(_dicData)
 
     # Add an empty DTI field if it does not exist
@@ -333,6 +330,7 @@ def CheckDti(_sCfgDti: str, _sTrgDti: str) -> dict:
 
 # enddef
 
+
 ####################################################################################
 # Check DTI
 def IsDti(_sCfgDti: str, _sTrgDti: str) -> bool:
@@ -401,7 +399,6 @@ def GetDataBlocksOfType(_dicData: dict, _sDti: str) -> list:
     lRes = []
 
     for sDataDti in _dicData:
-
         dicR = CheckDti(sDataDti, _sDti)
         if dicR.get("bOK"):
             xData = _dicData.get(sDataDti)
@@ -633,11 +630,11 @@ def StoreDictValuesInObject(
     _objTrg,
     _dicSrc: dict,
     _lMap: Iterable,
+    sTrgAttributePrefix: str = None,
     sWhere: str = "dictionary",
     sMsgNotFound=None,
     sMsgWrongType=None,
 ):
-
     assertion.FuncArgTypes()
 
     for tMap in _lMap:
@@ -655,6 +652,10 @@ def StoreDictValuesInObject(
             iNextIdx = 1
         else:
             raise CAnyError_Message(sMsg="Invalid type of second element in tuple: {}".format(str(tMap)))
+        # endif
+
+        if sTrgAttributePrefix is not None:
+            sTrgKey = sTrgAttributePrefix + sTrgKey
         # endif
 
         typValue = tMap[iNextIdx]
