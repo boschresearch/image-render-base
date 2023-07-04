@@ -29,13 +29,22 @@ from . import anycml_func_std
 
 
 class CAnyCML(ison.Parser):
-    def __init__(self, dicConstVars={}, dicRefVars=None, sImportPath=None, dicRtVars=None, setRtVarsEval=None):
+    def __init__(
+        self,
+        dicConstVars={},
+        dicRefVars=None,
+        sImportPath=None,
+        dicRtVars=None,
+        setRtVarsEval=None,
+        xParser: "CAnyCML" = None,
+    ):
         super().__init__(
             dicConstVars,
             dicRefVars=dicRefVars,
             sImportPath=sImportPath,
             dicRtVars=dicRtVars,
             setRtVarsEval=setRtVarsEval,
+            xParser=xParser,
         )
 
         self.RegisterFunctionModule(anycml_func_std)
