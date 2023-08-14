@@ -34,6 +34,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from .cls_any_error import CAnyError_Message
+from .cls_process_handler import CProcessHandler
 
 
 #################################################################################################################
@@ -47,10 +48,8 @@ def ExecCmd(
     bReturnStdOut: bool = False,
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
-    funcPreStart: Optional[Callable[[list], None]] = None,
-    funcPostStart: Optional[Callable[[list, int], None]] = None,
+    xProcHandler: Optional[CProcessHandler] = None,
 ):
-
     if sCwd is None:
         sEffCwd = os.getcwd()
     else:
@@ -62,8 +61,8 @@ def ExecCmd(
         dicEnviron.update(dicEnv)
     # endif
 
-    if funcPreStart is not None:
-        funcPreStart([sCmd])
+    if xProcHandler.bPreStartAvailable:
+        xProcHandler.PreStart([sCmd])
     # endif
 
     procChild = subprocess.Popen(
@@ -76,31 +75,49 @@ def ExecCmd(
         env=dicEnviron,
     )
 
-    if funcPostStart is not None:
-        funcPostStart([sCmd], procChild.pid)
+    if xProcHandler.bPostStartAvailable:
+        xProcHandler.PostStart([sCmd], procChild.pid)
     # endif
 
     lLines = []
-    for sLine in iter(procChild.stdout.readline, ""):
-        lLines.append(sLine)
-        if bDoPrint:
-            print(sPrintPrefix + sLine, end="", flush=True)
-        # endif
-    # endfor
+
+    if xProcHandler.bStdOutAvailable:
+        for sLine in iter(procChild.stdout.readline, ""):
+            xProcHandler.StdOut(sLine)
+        # endfor
+    else:
+        for sLine in iter(procChild.stdout.readline, ""):
+            lLines.append(sLine)
+            if bDoPrint:
+                print(sPrintPrefix + sLine, end="", flush=True)
+            # endif
+        # endfor
+    # endif
 
     procChild.stdout.close()
     iReturnCode = procChild.wait()
 
     if iReturnCode != 0:
         if bDoRaiseOnError:
+            if xProcHandler.bEndedAvailable:
+                xProcHandler.Ended(iReturnCode, "")
+            # endif
             raise subprocess.CalledProcessError(iReturnCode, sCmd)
-        elif not bDoPrint and bDoPrintOnError is True:
+
+        elif (not bDoPrint and bDoPrintOnError is True) or xProcHandler.bEndedAvailable:
             sMsg = sPrintPrefix + "ERROR:\n"
             for sLine in lLines:
                 sMsg += sPrintPrefix + "! " + sLine
             # endfor
-            print(sMsg)
+
+            if xProcHandler.bEndedAvailable:
+                xProcHandler.Ended(iReturnCode, sMsg)
+            else:
+                print(sMsg)
+            # endif
         # endif
+    elif xProcHandler.bEndedAvailable:
+        xProcHandler.Ended(iReturnCode, "")
     # endif
 
     if bReturnStdOut is True:
@@ -125,10 +142,8 @@ def ExecShellCmds(
     bReturnStdOut: bool = False,
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
-    funcPreStart: Optional[Callable[[list], None]] = None,
-    funcPostStart: Optional[Callable[[list, int], None]] = None,
+    xProcHandler: Optional[CProcessHandler] = None,
 ):
-
     if not isinstance(lCmds, list):
         raise CAnyError_Message(sMsg="Argument 'lCmds' must be a list")
     # endif
@@ -154,8 +169,8 @@ def ExecShellCmds(
 
     lCmd = [sShellPath, pathScript.as_posix()]
 
-    if funcPreStart is not None:
-        funcPreStart(lCmd)
+    if xProcHandler.bPreStartAvailable:
+        xProcHandler.PreStart(lCmd)
     # endif
 
     procChild = subprocess.Popen(
@@ -168,17 +183,24 @@ def ExecShellCmds(
         env=dicEnviron,
     )
 
-    if funcPostStart is not None:
-        funcPostStart(lCmd, procChild.pid)
+    if xProcHandler.bPostStartAvailable:
+        xProcHandler.PostStart(lCmd, procChild.pid)
     # endif
 
     lLines = []
-    for sLine in iter(procChild.stdout.readline, ""):
-        lLines.append(sLine)
-        if bDoPrint:
-            print(sPrintPrefix + sLine, end="", flush=True)
-        # endif
-    # endfor
+
+    if xProcHandler.bStdOutAvailable:
+        for sLine in iter(procChild.stdout.readline, ""):
+            xProcHandler.StdOut(sLine)
+        # endfor
+    else:
+        for sLine in iter(procChild.stdout.readline, ""):
+            lLines.append(sLine)
+            if bDoPrint:
+                print(sPrintPrefix + sLine, end="", flush=True)
+            # endif
+        # endfor
+    # endif
 
     procChild.stdout.close()
     iReturnCode = procChild.wait()
@@ -186,14 +208,25 @@ def ExecShellCmds(
 
     if iReturnCode != 0:
         if bDoRaiseOnError:
+            if xProcHandler.bEndedAvailable:
+                xProcHandler.Ended(iReturnCode, "")
+            # endif
             raise subprocess.CalledProcessError(iReturnCode, sCmd)
-        elif not bDoPrint and bDoPrintOnError is True:
+
+        elif (not bDoPrint and bDoPrintOnError is True) or xProcHandler.bEndedAvailable:
             sMsg = sPrintPrefix + "ERROR:\n"
             for sLine in lLines:
                 sMsg += sPrintPrefix + "! " + sLine
             # endfor
-            print(sMsg)
+
+            if xProcHandler.bEndedAvailable:
+                xProcHandler.Ended(iReturnCode, sMsg)
+            else:
+                print(sMsg)
+            # endif
         # endif
+    elif xProcHandler.bEndedAvailable:
+        xProcHandler.Ended(iReturnCode, "")
     # endif
 
     if bReturnStdOut is True:
@@ -217,10 +250,8 @@ def ExecPowerShellCmds(
     bReturnStdOut: bool = False,
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
-    funcPreStart: Optional[Callable[[list], None]] = None,
-    funcPostStart: Optional[Callable[[list, int], None]] = None,
+    xProcHandler: Optional[CProcessHandler] = None,
 ):
-
     return ExecShellCmds(
         sShellPath="powershell.exe",
         lCmds=lCmds,
@@ -231,8 +262,7 @@ def ExecPowerShellCmds(
         bReturnStdOut=bReturnStdOut,
         sPrintPrefix=sPrintPrefix,
         dicEnv=dicEnv,
-        funcPreStart=funcPreStart,
-        funcPostStart=funcPostStart,
+        xProcHandler=xProcHandler,
     )
 
 
@@ -250,10 +280,8 @@ def ExecBashCmds(
     bReturnStdOut: bool = False,
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
-    funcPreStart: Optional[Callable[[list], None]] = None,
-    funcPostStart: Optional[Callable[[list, int], None]] = None,
+    xProcHandler: Optional[CProcessHandler] = None,
 ):
-
     return ExecShellCmds(
         sShellPath="/bin/bash",
         lCmds=lCmds,
@@ -264,8 +292,7 @@ def ExecBashCmds(
         bReturnStdOut=bReturnStdOut,
         sPrintPrefix=sPrintPrefix,
         dicEnv=dicEnv,
-        funcPreStart=funcPreStart,
-        funcPostStart=funcPostStart,
+        xProcHandler=xProcHandler,
     )
 
 
@@ -300,10 +327,8 @@ def ExecProgram(
     bReturnStdOut: bool = False,
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
-    funcPreStart: Optional[Callable[[list], None]] = None,
-    funcPostStart: Optional[Callable[[list, int], None]] = None,
+    xProcHandler: Optional[CProcessHandler] = None,
 ):
-
     if sCwd is None:
         sEffCwd = os.getcwd()
     else:
@@ -332,8 +357,8 @@ def ExecProgram(
     # asyncio.run(DoExec())
     # return True
 
-    if funcPreStart is not None:
-        funcPreStart(lCmd)
+    if xProcHandler.bPreStartAvailable:
+        xProcHandler.PreStart(lCmd)
     # endif
 
     procChild = subprocess.Popen(
@@ -346,31 +371,49 @@ def ExecProgram(
         env=dicEnviron,
     )
 
-    if funcPostStart is not None:
-        funcPostStart(lCmd, procChild.pid)
+    if xProcHandler.bPostStartAvailable:
+        xProcHandler.PostStart(lCmd, procChild.pid)
     # endif
 
     lLines = []
-    for sLine in iter(procChild.stdout.readline, ""):
-        lLines.append(sLine)
-        if bDoPrint:
-            print(sPrintPrefix + sLine, end="", flush=True)
-        # endif
-    # endfor
+
+    if xProcHandler.bStdOutAvailable:
+        for sLine in iter(procChild.stdout.readline, ""):
+            xProcHandler.StdOut(sLine)
+        # endfor
+    else:
+        for sLine in iter(procChild.stdout.readline, ""):
+            lLines.append(sLine)
+            if bDoPrint:
+                print(sPrintPrefix + sLine, end="", flush=True)
+            # endif
+        # endfor
+    # endif
 
     procChild.stdout.close()
     iReturnCode = procChild.wait()
 
     if iReturnCode != 0:
         if bDoRaiseOnError:
+            if xProcHandler.bEndedAvailable:
+                xProcHandler.Ended(iReturnCode, "")
+            # endif
             raise subprocess.CalledProcessError(iReturnCode, lCmd)
-        elif not bDoPrint and bDoPrintOnError is True:
+
+        elif (not bDoPrint and bDoPrintOnError is True) or xProcHandler.bEndedAvailable:
             sMsg = sPrintPrefix + "ERROR:\n"
             for sLine in lLines:
                 sMsg += sPrintPrefix + "! " + sLine
             # endfor
-            print(sMsg)
+
+            if xProcHandler.bEndedAvailable:
+                xProcHandler.Ended(iReturnCode, sMsg)
+            else:
+                print(sMsg)
+            # endif
         # endif
+    elif xProcHandler.bEndedAvailable:
+        xProcHandler.Ended(iReturnCode, "")
     # endif
 
     if bReturnStdOut is True:

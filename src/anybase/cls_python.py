@@ -32,6 +32,7 @@ from typing import Callable, Optional
 from . import shell
 from . import path as cathpath
 from .cls_any_error import CAnyError_Message
+from anybase.cls_process_handler import CProcessHandler
 
 
 #####################################################################
@@ -144,8 +145,7 @@ class CPythonConfig:
         bReturnStdOut=False,
         sPrintPrefix="",
         dicEnv=None,
-        funcPreStart: Optional[Callable[[list], None]] = None,
-        funcPostStart: Optional[Callable[[list, int], None]] = None,
+        xProcHandler: Optional[CProcessHandler] = None
     ):
         lCmds = []
         sCwd = None
@@ -188,8 +188,7 @@ class CPythonConfig:
                 bReturnStdOut=bReturnStdOut,
                 sPrintPrefix=sPrintPrefix,
                 dicEnv=dicEnv,
-                funcPreStart=funcPreStart,
-                funcPostStart=funcPostStart,
+                xProcHandler=xProcHandler,
             )
         elif self.bIsLinux:
             iReturnCode = shell.ExecBashCmds(
@@ -201,8 +200,7 @@ class CPythonConfig:
                 bReturnStdOut=bReturnStdOut,
                 sPrintPrefix=sPrintPrefix,
                 dicEnv=dicEnv,
-                funcPreStart=funcPreStart,
-                funcPostStart=funcPostStart,
+                xProcHandler=xProcHandler,
             )
         # endif
 
