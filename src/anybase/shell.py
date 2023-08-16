@@ -26,8 +26,9 @@
 
 
 import os
-
-from typing import Callable, Optional
+import queue
+import threading
+from typing import Callable, Optional, Union
 
 # import asyncio
 import subprocess
@@ -49,7 +50,7 @@ def ExecCmd(
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
     xProcHandler: Optional[CProcessHandler] = None,
-):
+) -> Union[tuple[bool, list[str]], bool]:
     if sCwd is None:
         sEffCwd = os.getcwd()
     else:
@@ -61,70 +62,18 @@ def ExecCmd(
         dicEnviron.update(dicEnv)
     # endif
 
-    if xProcHandler.bPreStartAvailable:
-        xProcHandler.PreStart([sCmd])
-    # endif
-
-    procChild = subprocess.Popen(
-        sCmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        shell=True,
-        cwd=sEffCwd,
-        universal_newlines=True,
-        env=dicEnviron,
+    return _ExecProc(
+        xCmd=sCmd,
+        sCwd=sEffCwd,
+        dicEnviron=dicEnviron,
+        bShell=True,
+        bDoPrint=bDoPrint,
+        bDoPrintOnError=bDoPrintOnError,
+        bDoRaiseOnError=bDoRaiseOnError,
+        bReturnStdOut=bReturnStdOut,
+        sPrintPrefix=sPrintPrefix,
+        xProcHandler=xProcHandler,
     )
-
-    if xProcHandler.bPostStartAvailable:
-        xProcHandler.PostStart([sCmd], procChild.pid)
-    # endif
-
-    lLines = []
-
-    if xProcHandler.bStdOutAvailable:
-        for sLine in iter(procChild.stdout.readline, ""):
-            xProcHandler.StdOut(sLine)
-        # endfor
-    else:
-        for sLine in iter(procChild.stdout.readline, ""):
-            lLines.append(sLine)
-            if bDoPrint:
-                print(sPrintPrefix + sLine, end="", flush=True)
-            # endif
-        # endfor
-    # endif
-
-    procChild.stdout.close()
-    iReturnCode = procChild.wait()
-
-    if iReturnCode != 0:
-        if bDoRaiseOnError:
-            if xProcHandler.bEndedAvailable:
-                xProcHandler.Ended(iReturnCode, "")
-            # endif
-            raise subprocess.CalledProcessError(iReturnCode, sCmd)
-
-        elif (not bDoPrint and bDoPrintOnError is True) or xProcHandler.bEndedAvailable:
-            sMsg = sPrintPrefix + "ERROR:\n"
-            for sLine in lLines:
-                sMsg += sPrintPrefix + "! " + sLine
-            # endfor
-
-            if xProcHandler.bEndedAvailable:
-                xProcHandler.Ended(iReturnCode, sMsg)
-            else:
-                print(sMsg)
-            # endif
-        # endif
-    elif xProcHandler.bEndedAvailable:
-        xProcHandler.Ended(iReturnCode, "")
-    # endif
-
-    if bReturnStdOut is True:
-        return iReturnCode == 0, lLines
-    else:
-        return iReturnCode == 0
-    # endif
 
 
 # enddef
@@ -143,7 +92,7 @@ def ExecShellCmds(
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
     xProcHandler: Optional[CProcessHandler] = None,
-):
+) -> Union[tuple[bool, list[str]], bool]:
     if not isinstance(lCmds, list):
         raise CAnyError_Message(sMsg="Argument 'lCmds' must be a list")
     # endif
@@ -169,71 +118,18 @@ def ExecShellCmds(
 
     lCmd = [sShellPath, pathScript.as_posix()]
 
-    if xProcHandler.bPreStartAvailable:
-        xProcHandler.PreStart(lCmd)
-    # endif
-
-    procChild = subprocess.Popen(
-        lCmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        shell=False,
-        cwd=sEffCwd,
-        universal_newlines=True,
-        env=dicEnviron,
+    return _ExecProc(
+        xCmd=lCmd,
+        sCwd=sEffCwd,
+        dicEnviron=dicEnviron,
+        bShell=False,
+        bDoPrint=bDoPrint,
+        bDoPrintOnError=bDoPrintOnError,
+        bDoRaiseOnError=bDoRaiseOnError,
+        bReturnStdOut=bReturnStdOut,
+        sPrintPrefix=sPrintPrefix,
+        xProcHandler=xProcHandler,
     )
-
-    if xProcHandler.bPostStartAvailable:
-        xProcHandler.PostStart(lCmd, procChild.pid)
-    # endif
-
-    lLines = []
-
-    if xProcHandler.bStdOutAvailable:
-        for sLine in iter(procChild.stdout.readline, ""):
-            xProcHandler.StdOut(sLine)
-        # endfor
-    else:
-        for sLine in iter(procChild.stdout.readline, ""):
-            lLines.append(sLine)
-            if bDoPrint:
-                print(sPrintPrefix + sLine, end="", flush=True)
-            # endif
-        # endfor
-    # endif
-
-    procChild.stdout.close()
-    iReturnCode = procChild.wait()
-    pathScript.unlink()
-
-    if iReturnCode != 0:
-        if bDoRaiseOnError:
-            if xProcHandler.bEndedAvailable:
-                xProcHandler.Ended(iReturnCode, "")
-            # endif
-            raise subprocess.CalledProcessError(iReturnCode, sCmd)
-
-        elif (not bDoPrint and bDoPrintOnError is True) or xProcHandler.bEndedAvailable:
-            sMsg = sPrintPrefix + "ERROR:\n"
-            for sLine in lLines:
-                sMsg += sPrintPrefix + "! " + sLine
-            # endfor
-
-            if xProcHandler.bEndedAvailable:
-                xProcHandler.Ended(iReturnCode, sMsg)
-            else:
-                print(sMsg)
-            # endif
-        # endif
-    elif xProcHandler.bEndedAvailable:
-        xProcHandler.Ended(iReturnCode, "")
-    # endif
-
-    if bReturnStdOut is True:
-        return iReturnCode == 0, lLines
-    else:
-        return iReturnCode == 0
-    # endif
 
 
 # enddef
@@ -251,7 +147,7 @@ def ExecPowerShellCmds(
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
     xProcHandler: Optional[CProcessHandler] = None,
-):
+) -> Union[tuple[bool, list[str]], bool]:
     return ExecShellCmds(
         sShellPath="powershell.exe",
         lCmds=lCmds,
@@ -281,7 +177,7 @@ def ExecBashCmds(
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
     xProcHandler: Optional[CProcessHandler] = None,
-):
+) -> Union[tuple[bool, list[str]], bool]:
     return ExecShellCmds(
         sShellPath="/bin/bash",
         lCmds=lCmds,
@@ -300,22 +196,6 @@ def ExecBashCmds(
 
 
 #################################################################################################################
-async def ReadPipe(pipeX):
-    while True:
-        print("Read pipe")
-        sText = await pipeX.read(10)
-        if not sText:
-            break
-        else:
-            print(sText)
-        # endif
-    # endwhile
-
-
-# enddef
-
-
-#################################################################################################################
 def ExecProgram(
     *,
     sProgram: str,
@@ -328,7 +208,7 @@ def ExecProgram(
     sPrintPrefix: str = "",
     dicEnv: Optional[dict] = None,
     xProcHandler: Optional[CProcessHandler] = None,
-):
+) -> Union[tuple[bool, list[str]], bool]:
     if sCwd is None:
         sEffCwd = os.getcwd()
     else:
@@ -343,30 +223,73 @@ def ExecProgram(
     lCmd = [sProgram]
     lCmd.extend(lArgs)
 
-    # async def DoExec():
-    #     print(f"Starting program '{sProgram}' with args: {lArgs}")
-    #     procX = await asyncio.create_subprocess_exec(
-    #         sProgram, *lArgs, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-    #     )
+    return _ExecProc(
+        xCmd=lCmd,
+        sCwd=sEffCwd,
+        dicEnviron=dicEnviron,
+        bShell=False,
+        bDoPrint=bDoPrint,
+        bDoPrintOnError=bDoPrintOnError,
+        bDoRaiseOnError=bDoRaiseOnError,
+        bReturnStdOut=bReturnStdOut,
+        sPrintPrefix=sPrintPrefix,
+        xProcHandler=xProcHandler,
+    )
 
-    #     await asyncio.gather(ReadPipe(procX.stdout), ReadPipe(procX.stderr))
 
-    # # enddef
+# enddef
 
-    # print("Starting async...")
-    # asyncio.run(DoExec())
-    # return True
+
+#################################################################################################################
+def _ReadPipeToQueue(_xPipe, _qLines: queue.Queue):
+    for sLine in iter(_xPipe.readline, ""):
+        _qLines.put(sLine)
+    # endfor
+    _xPipe.close()
+
+
+# enddef
+
+
+#################################################################################################################
+def _ExecProc(
+    *,
+    xCmd: Union[str, list],
+    sCwd: str,
+    dicEnviron: dict,
+    bShell: bool,
+    bDoPrint: bool = False,
+    bDoPrintOnError: bool = False,
+    bDoRaiseOnError: bool = False,
+    bReturnStdOut: bool = False,
+    sPrintPrefix: str = "",
+    xProcHandler: Optional[CProcessHandler] = None,
+) -> Union[tuple[bool, list[str]], bool]:
+    lCmd: list = None
+    if isinstance(xCmd, list):
+        lCmd = xCmd
+    else:
+        lCmd = [xCmd]
+    # endif
+
+    if xProcHandler.bPollTerminateAvailable and xProcHandler.PollTerminate() is True:
+        if bReturnStdOut is True:
+            return False, []
+        else:
+            return False
+        # endif
+    # endif
 
     if xProcHandler.bPreStartAvailable:
         xProcHandler.PreStart(lCmd)
     # endif
 
     procChild = subprocess.Popen(
-        lCmd,
+        xCmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        shell=False,
-        cwd=sEffCwd,
+        shell=bShell,
+        cwd=sCwd,
         universal_newlines=True,
         env=dicEnviron,
     )
@@ -375,22 +298,54 @@ def ExecProgram(
         xProcHandler.PostStart(lCmd, procChild.pid)
     # endif
 
-    lLines = []
+    qLines = queue.Queue()
+    threadRead = threading.Thread(target=_ReadPipeToQueue, args=(procChild.stdout, qLines), daemon=True)
+    threadRead.start()
 
-    if xProcHandler.bStdOutAvailable:
-        for sLine in iter(procChild.stdout.readline, ""):
-            xProcHandler.StdOut(sLine)
-        # endfor
-    else:
-        for sLine in iter(procChild.stdout.readline, ""):
-            lLines.append(sLine)
-            if bDoPrint:
-                print(sPrintPrefix + sLine, end="", flush=True)
+    lLines = []
+    bTerminate: bool = False
+
+    while True:
+        while True:
+            if xProcHandler.bPollTerminateAvailable:
+                bTerminate = xProcHandler.PollTerminate()
+                if bTerminate is True:
+                    break
+                # endif
             # endif
-        # endfor
+
+            try:
+                sLine = qLines.get_nowait()
+            except queue.Empty:
+                break
+            # endtry
+
+            if xProcHandler.bStdOutAvailable:
+                xProcHandler.StdOut(sLine)
+            else:
+                lLines.append(sLine)
+                if bDoPrint:
+                    print(sPrintPrefix + sLine, end="", flush=True)
+                # endif
+            # endif
+
+        # endwhile read lines from queue
+
+        if bTerminate is True:
+            break
+        # endif
+
+        # See whether read thread has ended
+        threadRead.join(0.1)
+        if threadRead.is_alive() is False:
+            break
+        # endif
+    # endwhile waiting for process output
+
+    if bTerminate is True:
+        procChild.terminate()
     # endif
 
-    procChild.stdout.close()
     iReturnCode = procChild.wait()
 
     if iReturnCode != 0:

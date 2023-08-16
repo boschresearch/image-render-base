@@ -33,16 +33,19 @@ class CProcessHandler:
         _funcPostStart: Optional[Callable[[list, int], None]] = None,
         _funcStdOut: Optional[Callable[[str], None]] = None,
         _funcEnded: Optional[Callable[[int, str], None]] = None,
+        _funcPollTerminate: Optional[Callable[[None], bool]] = None,
     ):
         self._lFuncPreStart: list[Callable[[list], None]] = []
         self._lFuncPostStart: list[Callable[[list, int], None]] = []
         self._lFuncStdOut: list[Callable[[str], None]] = []
         self._lFuncEnded: list[Callable[[int, str], None]] = []
+        self._lFuncPollTerminate: list[Callable[[None], bool]] = []
 
         self.AddHandlerPreStart(_funcPreStart)
         self.AddHandlerPostStart(_funcPostStart)
         self.AddHandlerStdOut(_funcStdOut)
         self.AddHandlerEnded(_funcEnded)
+        self.AddHandlerPollTerminate(_funcPollTerminate)
 
     # enddef
 
@@ -67,6 +70,12 @@ class CProcessHandler:
     @property
     def bEndedAvailable(self) -> bool:
         return len(self._lFuncEnded) > 0
+
+    # enddef
+
+    @property
+    def bPollTerminateAvailable(self) -> bool:
+        return len(self._lFuncPollTerminate) > 0
 
     # enddef
 
@@ -102,6 +111,17 @@ class CProcessHandler:
 
     # enddef
 
+    def PollTerminate(self) -> bool:
+        funcX: Callable[[None], bool] = None
+        for funcX in self._lFuncPollTerminate:
+            if funcX() is True:
+                return True
+            # endif
+        # endfor
+        return False
+
+    # enddef
+
     # ############################################################################
     def AddHandlerPreStart(self, _funcPreStart: Callable[[list], None]):
         if _funcPreStart is not None:
@@ -130,6 +150,14 @@ class CProcessHandler:
     def AddHandlerEnded(self, _funcEnded: Callable[[int, str], None]):
         if _funcEnded is not None:
             self._lFuncEnded.append(_funcEnded)
+        # endif
+
+    # enddef
+
+    # ############################################################################
+    def AddHandlerPollTerminate(self, _funcPollTerminate: Callable[[None], bool]):
+        if _funcPollTerminate is not None:
+            self._lFuncPollTerminate.append(_funcPollTerminate)
         # endif
 
     # enddef
