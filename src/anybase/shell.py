@@ -272,6 +272,10 @@ def _ExecProc(
         lCmd = [xCmd]
     # endif
 
+    if xProcHandler is None:
+        xProcHandler = CProcessHandler()
+    # endif
+
     if xProcHandler.bPollTerminateAvailable and xProcHandler.PollTerminate() is True:
         if bReturnStdOut is True:
             return False, []
@@ -284,6 +288,8 @@ def _ExecProc(
         xProcHandler.PreStart(lCmd)
     # endif
 
+    qLines = queue.Queue()
+
     procChild = subprocess.Popen(
         xCmd,
         stdout=subprocess.PIPE,
@@ -294,13 +300,12 @@ def _ExecProc(
         env=dicEnviron,
     )
 
+    threadRead = threading.Thread(target=_ReadPipeToQueue, args=(procChild.stdout, qLines), daemon=True)
+    threadRead.start()
+
     if xProcHandler.bPostStartAvailable:
         xProcHandler.PostStart(lCmd, procChild.pid)
     # endif
-
-    qLines = queue.Queue()
-    threadRead = threading.Thread(target=_ReadPipeToQueue, args=(procChild.stdout, qLines), daemon=True)
-    threadRead.start()
 
     lLines = []
     bTerminate: bool = False
@@ -341,6 +346,25 @@ def _ExecProc(
             break
         # endif
     # endwhile waiting for process output
+
+    # Read remaining lines
+    while True:
+        try:
+            sLine = qLines.get_nowait()
+        except queue.Empty:
+            break
+        # endtry
+
+        if xProcHandler.bStdOutAvailable:
+            xProcHandler.StdOut(sLine)
+        else:
+            lLines.append(sLine)
+            if bDoPrint:
+                print(sPrintPrefix + sLine, end="", flush=True)
+            # endif
+        # endif
+
+    # endwhile read lines from queue
 
     if bTerminate is True:
         procChild.terminate()
