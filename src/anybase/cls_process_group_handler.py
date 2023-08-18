@@ -159,11 +159,17 @@ class CProcessGroupHandler:
     # enddef
 
     # ##################################################################################################
-    def UpdateProcOutput(self, *, _iMaxTime_ms: int = 100):
+    def UpdateProcOutput(self, *, _iMaxTime_ms: int = 100, _fInitialWaitTime_s: float = 0.0):
+        bFirst: bool = True
         iStartTime_ns = time.time_ns()
         while True:
             try:
-                iJobId, sLine = self._qProcStdOut.get_nowait()
+                if _fInitialWaitTime_s > 0.0 and bFirst is True:
+                    iJobId, sLine = self._qProcStdOut.get(timeout=_fInitialWaitTime_s)
+                    bFirst = False
+                else:
+                    iJobId, sLine = self._qProcStdOut.get_nowait()
+                # endif
             except queue.Empty:
                 break
             # endtry
