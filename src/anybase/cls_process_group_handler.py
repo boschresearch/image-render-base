@@ -159,6 +159,16 @@ class CProcessGroupHandler:
     # enddef
 
     # ##################################################################################################
+    def ClearTerminateProc(self, _iJobId: int):
+        if _iJobId not in self._dicProcTerminateEvent:
+            raise RuntimeError("Job Id '{_iJobId}' not available")
+        # endif
+
+        self._dicProcTerminateEvent[_iJobId].clear()
+
+    # enddef
+
+    # ##################################################################################################
     def UpdateProcOutput(self, *, _iMaxTime_ms: int = 100, _fInitialWaitTime_s: float = 0.0):
         bFirst: bool = True
         iStartTime_ns = time.time_ns()
