@@ -26,9 +26,11 @@
 
 
 import os
+import time
 import queue
 import threading
-from typing import Callable, Optional, Union
+import select
+from typing import Callable, Optional, Union, IO
 
 # import asyncio
 import subprocess
@@ -241,11 +243,43 @@ def ExecProgram(
 
 
 #################################################################################################################
-def _ReadPipeToQueue(_xPipe, _qLines: queue.Queue):
+def _ReadPipeToQueue(_xPipe: IO[str], _qLines: queue.Queue, _evTerminate: threading.Event):
+    # xPoll = select.poll()
+    # xPoll.register(_xPipe, select.POLLIN)
+
+    # while not _evTerminate.is_set():
+    #     time.sleep(0.1)
+    #     while xPoll.poll(0.0):
+    #         sLine = _xPipe.readline()
+    #         # if sLine == "":
+    #         #     _evTerminate.set()
+    #         #     break
+    #         # # endif
+    #         _qLines.put(sLine)
+    #     # endwhile
+    # # endwhile
+    # _xPipe.close()
+
+    # sLine: str = ""
+
+    # while not _evTerminate.is_set():
+    #     byIn = _xPipe.read1(1)
+    #     if len(byIn) > 0:
+    #         sPart: str = byIn.decode("utf-8")
+    #         if sPart != "\n":
+    #             sLine += sPart
+    #         else:
+    #             _qLines.put(sLine)
+    #         # endif
+    #     # endif
+    # # endwhile
+
     for sLine in iter(_xPipe.readline, ""):
         _qLines.put(sLine)
     # endfor
     _xPipe.close()
+
+    # # print(">> READ PIPE TO QUEUE ENDED")
 
 
 # enddef
@@ -300,7 +334,10 @@ def _ExecProc(
         env=dicEnviron,
     )
 
-    threadRead = threading.Thread(target=_ReadPipeToQueue, args=(procChild.stdout, qLines), daemon=True)
+    evTerminateRead = threading.Event()
+    threadRead = threading.Thread(
+        target=_ReadPipeToQueue, args=(procChild.stdout, qLines, evTerminateRead), daemon=True
+    )
     threadRead.start()
 
     if xProcHandler.bPostStartAvailable:
@@ -340,12 +377,24 @@ def _ExecProc(
             break
         # endif
 
+        try:
+            procChild.wait(timeout=0.01)
+            print(f">> PROCESS ENDED: {lCmd}")
+            break
+        except subprocess.TimeoutExpired:
+            pass
+        # endtry
+
         # See whether read thread has ended
         threadRead.join(0.1)
         if threadRead.is_alive() is False:
+            print(f">> Read Thread Ended: {lCmd}")
             break
         # endif
     # endwhile waiting for process output
+
+    # evTerminateRead.set()
+    # threadRead.join(0.1)
 
     # Read remaining lines
     while True:
@@ -370,7 +419,12 @@ def _ExecProc(
         procChild.terminate()
     # endif
 
+    # procChild.stdout.close()
     iReturnCode = procChild.wait()
+
+    if threadRead.is_alive() is True:
+        print(f">>! Read Thread still alive: {lCmd}")
+    # endif
 
     if iReturnCode != 0:
         if bDoRaiseOnError:
