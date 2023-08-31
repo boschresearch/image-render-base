@@ -49,6 +49,7 @@ class CProcessGroupHandler:
 
         self._dicProcOutput: dict[int, CProcessOutput] = dict()
         self._dicProcStatus: dict[int, EProcessStatus] = dict()
+        self._dicProcEndMsg: dict[int, str] = dict()
         self._dicProcTerminateEvent: dict[int, threading.Event] = dict()
 
         self._setProcStatusChanged: set[int] = set()
@@ -64,6 +65,7 @@ class CProcessGroupHandler:
 
         self._dicProcOutput = dict()
         self._dicProcStatus = dict()
+        self._dicProcEndMsg = dict()
         self._dicProcTerminateEvent = dict()
         self._setProcOutputChanged = set()
         self._setProcStatusChanged = set()
@@ -108,6 +110,12 @@ class CProcessGroupHandler:
         with self._lockProcData:
             return self._dicProcStatus.get(iId)
         # endwith
+
+    # enddef
+
+    # ##################################################################################################
+    def GetProcEndMessage(self, iId: int) -> str:
+        return self._dicProcEndMsg.get(iId)
 
     # enddef
 
@@ -247,6 +255,7 @@ class CProcessGroupHandler:
             with self._lockProcData:
                 if iId in self._dicProcStatus:
                     self._dicProcStatus[iId] = EProcessStatus.ENDED if iReturnValue == 0 else EProcessStatus.TERMINATED
+                    self._dicProcEndMsg[iId] = sMsg
                     self._setProcStatusChanged.add(iId)
                 # endif
             # endwith
