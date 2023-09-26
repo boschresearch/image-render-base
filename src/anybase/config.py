@@ -630,7 +630,7 @@ def StoreDictValuesInObject(
     _objTrg,
     _dicSrc: dict,
     _lMap: Iterable,
-    sTrgAttributePrefix: str = None,
+    sTrgAttributePrefix: Optional[str] = None,
     sWhere: str = "dictionary",
     sMsgNotFound=None,
     sMsgWrongType=None,
