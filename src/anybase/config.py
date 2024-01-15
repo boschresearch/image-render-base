@@ -41,6 +41,34 @@ from . import assertion
 
 TDictValue = TypeVar("TDictValue")
 
+# "bOK": bOK,
+# "sMsg": sMsg,
+# "sCfgDti": _sCfgDti,
+# "lCfgType": lCfgType,
+# "lCfgVer": lCfgVer,
+# "sTrgDti": _sTrgDti,
+# "lTrgType": lTrgType,
+# "lTrgVer": lTrgVer,
+
+
+class CDtiInfo:
+    def __init__(self, _dicInfo: dict):
+        self.bOk = _dicInfo.get("bOK", False)
+        self.sMessage = _dicInfo.get("sMsg", "")
+
+        self.sConfigDti = _dicInfo.get("sCfgDti")
+        self.lConfigType = _dicInfo.get("lCfgType", [])
+        self.lConfigVersion = _dicInfo.get("lCfgVer", [])
+
+        self.sTargetDti = _dicInfo.get("sTrgDti")
+        self.lTargetType = _dicInfo.get("lTrgType", [])
+        self.lTargetVersion = _dicInfo.get("lTrgVer", [])
+
+    # enddef
+
+
+# endclass
+
 
 ####################################################################################
 def ProvideReadFilepathExt(_xPathFile: Union[str, list, tuple, Path]):
