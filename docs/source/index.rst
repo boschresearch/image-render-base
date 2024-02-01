@@ -29,6 +29,7 @@ Base Functions
    :caption: Contents:
 
    license
+   back-to-main
 
 .. Indices and tables
 .. ==================
