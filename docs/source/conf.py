@@ -30,11 +30,15 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import json
 from pathlib import Path
-from catharsys.setup.module import GetRepoVersion
+from catharsys.setup.repos import GetRepoVersion
 
-pathSetup = Path(__file__).parent.parent.parent
-sVersion = GetRepoVersion(pathModule=pathSetup)
+pathModule = Path(__file__).parent.parent.parent
+sVersion, sModuleType = GetRepoVersion(pathModule=pathModule)
+
+pathSetup = pathModule.parent.parent
+pathDocsSrcMain = pathSetup / "docs" / "source"
 
 
 # -- Project information -----------------------------------------------------
@@ -52,7 +56,11 @@ release = sVersion
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.intersphinx", "myst_parser"]
+extensions = [
+    "sphinx.ext.intersphinx",
+    # "myst_parser",
+    "myst_nb",
+]
 
 myst_enable_extensions = ["colon_fence", "deflist", "fieldlist", "substitution"]
 
@@ -78,3 +86,20 @@ html_theme = "sphinx_book_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+intersphinx_mapping = {}
+
+pathConfig = pathDocsSrcMain / "auto_config.json"
+if pathConfig.exists():
+    with pathConfig.open("r") as xFile:
+        dicConfig = json.load(xFile)
+    # endwith
+
+    lModules = dicConfig["lModules"]
+    for sModule in lModules:
+        intersphinx_mapping[sModule] = (
+            f"../../{sModule}/html",
+            f"../../../../docs/build/{sModule}/html/objects.inv",
+        )
+    # endfor
+# endif

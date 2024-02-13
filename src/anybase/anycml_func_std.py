@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 ###
-# File: /compositor.py
 # Created Date: Thursday, October 22nd 2020, 4:26:28 pm
 # Author: Christian Perwass
 # <LICENSE id="Apache-2.0">
