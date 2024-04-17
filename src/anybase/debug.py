@@ -63,9 +63,19 @@ def ExtendPathForDebugPy():
         raise RuntimeError("No python extension found in VSCode extensions folder")
     # endif
 
-    pathExtDebugPython = pathExtDebug / "pythonFiles/lib/python"
-    if not pathExtDebugPython.exists():
-        raise RuntimeError(f"VSCode python extension has no python files at: {(pathExtDebugPython.as_posix())}")
+    lSubPaths: list[str] = ["pythonFiles/lib/python", "python_files/lib/python"]
+    for sSubPath in lSubPaths:
+        pathExtDebugPython = pathExtDebug / sSubPath
+        if pathExtDebugPython.exists():
+            break
+        # endif
+        pathExtDebugPython = None
+    # endfor
+
+    if pathExtDebugPython is None:
+        lPaths: list[str] = [(pathExtDebug / sSubPath).as_posix() for sSubPath in lSubPaths]
+        sPaths = "\n".join(lPaths)
+        raise RuntimeError(f"VSCode python extension has no python files at either of the paths:\n{sPaths}")
     # endif
 
     logging_dec.logFunctionCall.PrintLog(f"Using 'debugpy' module at path: {(pathExtDebugPython.as_posix())}")
