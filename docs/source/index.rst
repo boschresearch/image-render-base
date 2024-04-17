@@ -28,7 +28,9 @@ Base Functions
    :maxdepth: 2
    :caption: Contents:
 
+   ison-functions
    license
+   back-to-main
 
 .. Indices and tables
 .. ==================

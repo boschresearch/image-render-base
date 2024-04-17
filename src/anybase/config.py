@@ -24,8 +24,7 @@
 # </LICENSE>
 ###
 
-import inspect
-import os
+import sys
 import copy
 from typing import Any, Iterable, Optional, Union, TypeVar
 from pathlib import Path
@@ -34,8 +33,8 @@ import ison
 from . import path
 from . import file
 from . import filepathvars
-from .cls_any_error import CAnyError, CAnyError_TaskMessage, CAnyError_Message
-from .cls_anycml import CAnyCML
+from .cls_any_error import CAnyError_TaskMessage, CAnyError_Message
+
 from . import assertion
 
 
@@ -102,6 +101,8 @@ def Load(
     bDoThrow: bool = True,
     dicCustomVars: dict = None,
 ) -> dict:
+    from .cls_anycml import CAnyCML
+
     try:
         pathConfig = ProvideReadFilepathExt(_xPathFile)
     except Exception as xEx:
