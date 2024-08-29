@@ -383,6 +383,7 @@ def Json(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 @tooltip(
     "Substitutes with the file contents of the file passed as string. "
     "The second optional argument specifies the expected DTI"
+    "If the path contains wildcards, the first matching path is used"
 )
 def Import(_xParser, _lArgs, _lArgIsProc, *, sFuncName, funcGetCustomVarsFromPath=None):
     global g_dicImport
@@ -400,7 +401,7 @@ def Import(_xParser, _lArgs, _lArgIsProc, *, sFuncName, funcGetCustomVarsFromPat
     if iArgCnt < 1 or iArgCnt > 2:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="Import function reequires one or two arguments, {0} are given".format(iArgCnt),
+            sMsg="Import function requires one or two arguments, {0} are given".format(iArgCnt),
         )
     # endif
 
@@ -429,6 +430,8 @@ def Import(_xParser, _lArgs, _lArgIsProc, *, sFuncName, funcGetCustomVarsFromPat
     # endif
 
     pathImport = path.ProvideReadFilepathExt(pathFile, [".json", ".json5", ".ison"], bDoRaise=True)
+    # Resolve wildcards * and use the first hit to enable rudimentariy wildcard support
+    pathImport = Path(glob(str(pathImport))[0])
 
     if pathImport.as_posix() in g_dicImport:
         xResult = g_dicImport.get(pathImport.as_posix())
