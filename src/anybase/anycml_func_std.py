@@ -429,13 +429,14 @@ def Import(_xParser, _lArgs, _lArgIsProc, *, sFuncName, funcGetCustomVarsFromPat
         )
     # endif
 
-    if "*" in pathFile.as_posix():
+    sFilePath = pathFile.as_posix()
+    if "*" in sFilePath or "?" in sFilePath:
         # Resolve wildcards * and use the first hit to enable rudimentariy wildcard support
-        lPaths = glob(pathFile.as_posix())
+        lPaths = glob(sFilePath)
         if len(lPaths) == 0:
             raise CParserError_FuncMessage(
                 sFunc=sFuncName,
-                sMsg=f"No files found for pattern: {pathFile.as_posix()}",
+                sMsg=f"No files found for pattern: {sFilePath}",
             )
         # endif
         pathImport = Path(lPaths[0])
