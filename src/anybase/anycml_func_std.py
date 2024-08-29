@@ -429,9 +429,19 @@ def Import(_xParser, _lArgs, _lArgIsProc, *, sFuncName, funcGetCustomVarsFromPat
         )
     # endif
 
-    pathImport = path.ProvideReadFilepathExt(pathFile, [".json", ".json5", ".ison"], bDoRaise=True)
-    # Resolve wildcards * and use the first hit to enable rudimentariy wildcard support
-    pathImport = Path(glob(str(pathImport))[0])
+    if "*" in pathFile.as_posix():
+        # Resolve wildcards * and use the first hit to enable rudimentariy wildcard support
+        lPaths = glob(pathFile.as_posix())
+        if len(lPaths) == 0:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg=f"No files found for pattern: {pathFile.as_posix()}",
+            )
+        # endif
+        pathImport = Path(lPaths[0])
+    else:
+        pathImport = path.ProvideReadFilepathExt(pathFile, [".json", ".json5", ".ison"], bDoRaise=True)
+    # endif
 
     if pathImport.as_posix() in g_dicImport:
         xResult = g_dicImport.get(pathImport.as_posix())
