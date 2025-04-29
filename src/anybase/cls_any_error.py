@@ -24,11 +24,11 @@
 # </LICENSE>
 ###
 
-from catharsys.setup.logging import logger as clog
+from anybase.logging import logger as clog
 
 ################################################################################
-# def _print(_sText: str):
-#     print(_sText, flush=True)
+def _print(_sText: str):
+    print(_sText, flush=True)
 
 
 # enddef
@@ -193,21 +193,25 @@ class CAnyError(RuntimeError):
 
         import traceback
 
-        # _print("")
-        # _print("===================================================================")
+        _print("")
+        _print("===================================================================")
         if sMsg is not None:
-            clog.error(sMsg)
+            # clog.error(sMsg)
+            print(sMsg)
         else:
-            clog.error("ERROR")
+            # clog.error("ERROR")
+            print("ERROR")
         # endif
-        clog.error(sText)
+        # clog.error(sText)
+        print(sText)
         if bTraceback:
             lEx = traceback.format_exception(type(_xEx), _xEx, _xEx.__traceback__)
             for sLine in lEx:
-                clog.error(sLine)
+                print(sLine.strip())
+                # clog.error(sLine)
         # endif
-        # _print("===================================================================")
-        # _print("")
+        _print("===================================================================")
+        _print("")
 
     # enddef
 
